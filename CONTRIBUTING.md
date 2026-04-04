@@ -20,24 +20,30 @@ uv sync
 cp .env.example .env
 ```
 
+Generate a secure API key for HTTP transport auth and add it to `.env`:
+
+```bash
+uv run keygen
+```
+
 ---
 
 ## Running the server
 
 **Interactive inspector (best for development):**
 ```bash
-uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
+uv run inspect
 ```
 Opens a browser UI where you can call tools and inspect responses in real time.
 
 **stdio (as Claude Desktop would run it):**
 ```bash
-uv run python -m mixcloud_mcp.stdio
+uv run start
 ```
 
 **HTTP server:**
 ```bash
-uv run python -m mixcloud_mcp.http
+uv run start-http
 ```
 
 ---

@@ -39,19 +39,25 @@ Edit `.env` and add your credentials (see [Environment variables](#environment-v
 ### Run locally (stdio — Claude Desktop)
 
 ```bash
-uv run python -m mixcloud_mcp.stdio
+uv run start
 ```
 
 ### Run as HTTP server (hosted / remote clients)
 
 ```bash
-uv run python -m mixcloud_mcp.http
+uv run start-http
 ```
 
 ### Test interactively
 
 ```bash
-uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
+uv run inspect
+```
+
+### Generate an API key (required for HTTP transport)
+
+```bash
+uv run keygen
 ```
 
 ---
