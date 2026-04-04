@@ -36,15 +36,15 @@ Add to your `claude_desktop_config.json`
 {
   "mcpServers": {
     "mixcloud": {
-      "command": "uvx",
+      "command": "/path/to/uvx",
       "args": ["mixcloud-mcp"]
     }
   }
 }
 ```
 
-> **Tip:** `uvx` runs the package directly from PyPI without a separate install step — the Python equivalent of `npx`.
-> If Claude Desktop can't find `uvx`, use the full path: run `which uvx` in your terminal.
+> **Tip:** Claude Desktop doesn't inherit your shell PATH, so `uvx` must be a full path.
+> Run `which uvx` in your terminal to find it — typically `/Users/yourname/.local/bin/uvx`.
 
 **Optional: Mixcloud API token**
 
@@ -54,7 +54,7 @@ Public data works without a token. If you have a [Mixcloud API key](https://www.
 {
   "mcpServers": {
     "mixcloud": {
-      "command": "uvx",
+      "command": "/path/to/uvx",
       "args": ["mixcloud-mcp"],
       "env": {
         "MIXCLOUD_ACCESS_TOKEN": "<your token>"
