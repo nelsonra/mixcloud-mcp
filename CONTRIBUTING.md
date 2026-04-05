@@ -20,11 +20,13 @@ uv sync
 cp .env.example .env
 ```
 
-Generate a secure API key for HTTP transport auth and add it to `.env`:
+Generate a secure API key for HTTP transport and add it to `.env`:
 
 ```bash
-uv run keygen
+uv run mixcloud-mcp-keygen
 ```
+
+To run the HTTP server locally without needing a key, set `DISABLE_AUTH=true` in your `.env`. Never use this in production.
 
 ---
 

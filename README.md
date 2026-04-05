@@ -90,9 +90,10 @@ Add to your `claude_desktop_config.json`:
 
 | Variable | Required | Description |
 |---|---|---|
-| `MIXCLOUD_ACCESS_TOKEN` | No | OAuth token — public data works without it, but token increases rate limits |
-| `MCP_API_KEY` | HTTP only | Bearer token to protect the HTTP endpoint |
+| `MIXCLOUD_ACCESS_TOKEN` | No | OAuth token — public data works without it, but increases rate limits |
+| `MCP_API_KEY` | HTTP only | Bearer token to protect the HTTP endpoint. Generate with `mixcloud-mcp-keygen` |
 | `MCP_PORT` | No | HTTP server port (default: `8000`) |
+| `DISABLE_AUTH` | No | Set to `true` to skip auth — local dev only, never in production |
 
 ---
 
