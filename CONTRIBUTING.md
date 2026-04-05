@@ -14,7 +14,7 @@ This project is built with [Claude Code](https://claude.ai/code) — contributio
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/mixcloud-mcp.git
+git clone https://github.com/nelsonra/mixcloud-mcp.git
 cd mixcloud-mcp
 uv sync
 cp .env.example .env

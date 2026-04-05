@@ -21,44 +21,9 @@ Ask Claude to search for mixes, look up artists, browse a user's uploads, and mo
 
 ## Quickstart
 
-### Prerequisites
-- Python 3.14+
-- [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+No install needed. Add the following to your Claude Desktop config and restart — `uvx` fetches the package from PyPI automatically.
 
-### Install
-
-```bash
-git clone https://github.com/YOUR_USERNAME/mixcloud-mcp.git
-cd mixcloud-mcp
-uv sync
-cp .env.example .env
-```
-
-Edit `.env` and add your credentials (see [Environment variables](#environment-variables)).
-
-### Run locally (stdio — Claude Desktop)
-
-```bash
-uv run mixcloud-mcp
-```
-
-### Run as HTTP server (hosted / remote clients)
-
-```bash
-uv run mixcloud-mcp-http
-```
-
-### Test interactively
-
-```bash
-uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
-```
-
-### Generate an API key (required for HTTP transport)
-
-```bash
-uv run mixcloud-mcp-keygen
-```
+See [Claude Desktop setup](#claude-desktop-setup) below.
 
 ---
 

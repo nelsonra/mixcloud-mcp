@@ -4,11 +4,29 @@ version = "0.1.0"
 description = "FastMCP server bridging the Mixcloud API"
 readme = "README.md"
 requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Nelson Ramalho" }
+]
+keywords = ["mixcloud", "mcp", "fastmcp", "music", "radio", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Multimedia :: Sound/Audio",
+]
 dependencies = [
     "fastmcp>=3.2.0",
     "httpx>=0.28.1",
     "python-dotenv>=1.2.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nelsonra/mixcloud-mcp"
+Source = "https://github.com/nelsonra/mixcloud-mcp"
+Issues = "https://github.com/nelsonra/mixcloud-mcp/issues"
 
 [build-system]
 requires = ["hatchling"]
