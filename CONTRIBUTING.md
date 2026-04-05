@@ -32,18 +32,23 @@ uv run keygen
 
 **Interactive inspector (best for development):**
 ```bash
-uv run inspect
+uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
 ```
 Opens a browser UI where you can call tools and inspect responses in real time.
 
 **stdio (as Claude Desktop would run it):**
 ```bash
-uv run start
+uv run mixcloud-mcp
 ```
 
 **HTTP server:**
 ```bash
-uv run start-http
+uv run mixcloud-mcp-http
+```
+
+**Generate an API key for HTTP auth:**
+```bash
+uv run mixcloud-mcp-keygen
 ```
 
 ---

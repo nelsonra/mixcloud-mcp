@@ -17,8 +17,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mixcloud_mcp"]
 
-[tool.uv.scripts]
-start = "python -m mixcloud_mcp.stdio"
-start-http = "python -m mixcloud_mcp.http"
-inspect = "fastmcp dev inspector src/mixcloud_mcp/server.py:mcp"
-keygen = "python -c \"import secrets; print(secrets.token_hex(32))\""
+[project.scripts]
+mixcloud-mcp = "mixcloud_mcp.stdio:run"
+mixcloud-mcp-http = "mixcloud_mcp.http:run"
+mixcloud-mcp-keygen = "mixcloud_mcp.keygen:run"
