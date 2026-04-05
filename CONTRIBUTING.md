@@ -55,6 +55,37 @@ uv run mixcloud-mcp-keygen
 
 ---
 
+## Testing the HTTP transport with Claude
+
+The HTTP transport is intended for server-to-server use. To test it end-to-end with Claude:
+
+**1. Disable auth in `.env` for local testing**
+```
+DISABLE_AUTH=true
+```
+
+**2. Start the HTTP server**
+```bash
+uv run mixcloud-mcp-http
+```
+
+**3. Expose it publicly with ngrok**
+```bash
+ngrok http 8000
+```
+ngrok prints a URL like `https://xxxx.ngrok-free.app`. Copy it.
+
+**4. Add as a custom connector in Claude**
+
+In Claude, go to **Settings → Connectors → Add custom connector** and enter:
+```
+https://xxxx.ngrok-free.app/mcp
+```
+
+The tools will be available in Claude immediately. Remember to revert `DISABLE_AUTH` and use a proper `MCP_API_KEY` when deploying to production.
+
+---
+
 ## Project structure
 
 ```

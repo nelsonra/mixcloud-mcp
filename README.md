@@ -64,25 +64,42 @@ uv run mixcloud-mcp-keygen
 
 ## Claude Desktop setup
 
-Add to your `claude_desktop_config.json`:
+Add to your `claude_desktop_config.json`
+(location: `~/Library/Application Support/Claude/claude_desktop_config.json` on Mac):
 
 ```json
 {
   "mcpServers": {
     "mixcloud": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/path/to/mixcloud-mcp",
-        "python",
-        "-m",
-        "mixcloud_mcp.stdio"
-      ]
+      "command": "uvx",
+      "args": ["mixcloud-mcp"]
     }
   }
 }
 ```
+
+> **Tip:** `uvx` runs the package directly from PyPI without a separate install step — the Python equivalent of `npx`.
+> If Claude Desktop can't find `uvx`, use the full path: run `which uvx` in your terminal.
+
+**Optional: Mixcloud API token**
+
+Public data works without a token. If you have a [Mixcloud API key](https://www.mixcloud.com/developers/), pass it via the `env` block to increase rate limits:
+
+```json
+{
+  "mcpServers": {
+    "mixcloud": {
+      "command": "uvx",
+      "args": ["mixcloud-mcp"],
+      "env": {
+        "MIXCLOUD_ACCESS_TOKEN": "<your token>"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop after editing the config.
 
 ---
 
