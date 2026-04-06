@@ -1,6 +1,6 @@
 [project]
 name = "mixcloud-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "FastMCP server bridging the Mixcloud API"
 readme = "README.md"
 requires-python = ">=3.14"
