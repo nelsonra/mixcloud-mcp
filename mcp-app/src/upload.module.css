@@ -1,0 +1,367 @@
+.message {
+  padding: var(--spacing-md);
+  font-size: 0.875rem;
+}
+
+.wrapper {
+  /* PowerFM brand colours — fixed regardless of host light/dark mode */
+  --color-background-primary: #3d3d3d;
+  --color-background-secondary: #2d2d2d;
+  --color-background-card: #333333;
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #bdbdbd;
+  --color-border: #555555;
+  --color-error: #f87171;
+  --color-success: #4ade80;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #333333;
+  min-height: 100%;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #2d2d2d;
+  border-bottom: 2px solid #ffff00;
+}
+
+.headerTitle {
+  font-size: var(--font-text-md-size);
+  font-weight: var(--font-weight-bold);
+  color: #ffffff;
+}
+
+.headerRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-decoration: none;
+}
+
+.poweredBy {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999999;
+}
+
+.powerFmLogo {
+  height: 30px;
+  width: auto;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+
+.container {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+/* ── Section cards ─────────────────────────────────────────────────────────── */
+
+.section {
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitle {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.proSection {
+  border-color: #444400;
+}
+
+.proSection .sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* ── PRO badge ─────────────────────────────────────────────────────────────── */
+
+.proBadge {
+  font-size: 0.6rem;
+  background: #ffff00;
+  color: #1a1a1a;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+/* ── Drop zones ────────────────────────────────────────────────────────────── */
+
+.dropZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-height: 72px;
+}
+
+.dropZone:hover {
+  border-color: #ffff00;
+}
+
+.dropZoneHasFile {
+  border-style: solid;
+  border-color: #ffff00;
+}
+
+.dropZoneSmall {
+  min-height: 48px;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dropHint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.fileName {
+  font-size: 0.875rem;
+  word-break: break-all;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+.fileMeta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* ── Fields ────────────────────────────────────────────────────────────────── */
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.fieldName {
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.fieldHint {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.input {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: var(--border-width-regular) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-text-md-size);
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #ffff00;
+}
+
+.textarea {
+  composes: input;
+  resize: vertical;
+  min-height: 72px;
+}
+
+.charCount {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-align: right;
+  margin-top: 2px;
+}
+
+.charCountOver {
+  color: var(--color-error);
+}
+
+/* ── Tags ──────────────────────────────────────────────────────────────────── */
+
+.tagRow {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.tagInput {
+  composes: input;
+  flex: 1;
+}
+
+.iconButton {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: var(--border-width-regular) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.iconButton:hover {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+.addTagButton {
+  font-size: 0.75rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.addTagButton:hover {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+/* ── Checkbox row ──────────────────────────────────────────────────────────── */
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.checkRow input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: #ffff00;
+  cursor: pointer;
+}
+
+.checkLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+/* ── Hosts ─────────────────────────────────────────────────────────────────── */
+
+.hostsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+/* ── Actions ───────────────────────────────────────────────────────────────── */
+
+.button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #ffff00;
+  color: #1a1a1a;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--font-text-md-size);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorMsg {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+/* ── Success state ─────────────────────────────────────────────────────────── */
+
+.successIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3d6b3d;
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.successLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.successLink {
+  color: #ffff00;
+  font-size: 0.875rem;
+  word-break: break-all;
+}

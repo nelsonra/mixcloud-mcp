@@ -28,15 +28,24 @@ uv run mixcloud-mcp-keygen
 
 To run the HTTP server locally without needing a key, set `DISABLE_AUTH=true` in your `.env`. Never use this in production.
 
+**Optional — Mixcloud OAuth (required for upload and authenticated tools):**
+
+Add your app credentials from [mixcloud.com/developers](https://www.mixcloud.com/developers/) to `.env`:
+```
+MIXCLOUD_CLIENT_ID=your_client_id
+MIXCLOUD_CLIENT_SECRET=your_client_secret
+```
+
+Then run the one-time OAuth flow — it opens a browser, you approve, and the token is written to `.env` automatically:
+```bash
+uv run mixcloud-mcp-oauth
+```
+
+Restart the server after this to pick up the new token.
+
 ---
 
 ## Running the server
-
-**Interactive inspector (best for development):**
-```bash
-uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
-```
-Opens a browser UI where you can call tools and inspect responses in real time.
 
 **stdio (as Claude Desktop would run it):**
 ```bash
@@ -52,6 +61,50 @@ uv run mixcloud-mcp-http
 ```bash
 uv run mixcloud-mcp-keygen
 ```
+
+---
+
+## Testing tools with MCP Inspector
+
+MCP Inspector gives you a browser UI to call tools and inspect responses interactively.
+
+**stdio tools (no server needed):**
+```bash
+uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
+```
+
+**HTTP transport:**
+
+Start the server in one terminal, then open the inspector in another:
+```bash
+uv run mixcloud-mcp-http
+```
+```bash
+uv run fastmcp dev inspector src/mixcloud_mcp/server.py:mcp
+```
+In the Inspector browser UI, switch transport to **Streamable HTTP** and enter `http://localhost:3000/mcp` (or your configured port).
+
+---
+
+## Testing the upload UI
+
+The upload tool uses an embedded React UI rendered as an MCP App. To preview it locally:
+
+**1. Start the HTTP server** (the upload form POSTs to its `/upload` route):
+```bash
+uv run mixcloud-mcp-http
+```
+
+**2. Start the MCP Apps preview** in a second terminal:
+```bash
+uv run fastmcp dev apps src/mixcloud_mcp/server.py
+```
+
+This opens a browser where you can call the `upload_cloudcast` tool — the upload form renders as an interactive UI in the conversation. The form submits directly to `http://localhost:PORT/upload` on the running HTTP server.
+
+> Make sure `MIXCLOUD_ACCESS_TOKEN` is set in `.env` (run `mixcloud-mcp-oauth` first) — uploads will fail without it.
+
+If you rebuild the React app (`npm run build` in `mcp-app/`), restart the HTTP server to pick up the new bundle.
 
 ---
 
@@ -89,16 +142,28 @@ The tools will be available in Claude immediately. Remember to revert `DISABLE_A
 ## Project structure
 
 ```
-src/mixcloud_mcp/
-├── server.py        ← FastMCP app — registers all tools
-├── stdio.py         ← stdio entry point
-├── http.py          ← HTTP entry point
-├── api/
-│   └── client.py    ← Mixcloud API wrapper (all HTTP calls go here)
-└── tools/
-    ├── search/      ← search tools
-    ├── tracks/      ← cloudcast/mix tools
-    └── users/       ← user profile tools
+mixcloud-mcp/
+├── mcp-app/                  ← React upload UI (MCP App)
+│   ├── src/
+│   │   ├── mcp-app.tsx       ← upload form component
+│   │   └── useMixcloudUploader.ts
+│   └── dist/
+│       └── mcp-app.html      ← self-contained built bundle (vite-plugin-singlefile)
+└── src/mixcloud_mcp/
+    ├── server.py             ← FastMCP app — registers all tools and resources
+    ├── stdio.py              ← stdio entry point
+    ├── http.py               ← HTTP entry point (Starlette wrapper, auth, rate limiting)
+    ├── keygen.py             ← mixcloud-mcp-keygen CLI
+    ├── oauth.py              ← mixcloud-mcp-oauth CLI (one-time Mixcloud auth flow)
+    ├── api/
+    │   └── client.py         ← Mixcloud API wrapper (all HTTP calls go here)
+    ├── routes/
+    │   └── upload.py         ← POST /upload — receives multipart form, forwards to Mixcloud
+    └── tools/
+        ├── search/           ← search_cloudcasts
+        ├── tracks/           ← get_cloudcast
+        ├── users/            ← get_user, get_user_cloudcasts, get_user_followers, get_user_following
+        └── upload/           ← upload_cloudcast (MCP App UI tool)
 ```
 
 Each tool category follows the same pattern:

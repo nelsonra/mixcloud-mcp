@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio",
 ]
 dependencies = [
-    "fastmcp>=3.2.0",
+    "fastmcp[apps]>=3.2.0",
     "httpx>=0.28.1",
     "python-dotenv>=1.2.2",
 ]
@@ -45,3 +45,4 @@ dev = [
 mixcloud-mcp = "mixcloud_mcp.stdio:run"
 mixcloud-mcp-http = "mixcloud_mcp.http:run"
 mixcloud-mcp-keygen = "mixcloud_mcp.keygen:run"
+mixcloud-mcp-oauth = "mixcloud_mcp.oauth:run"
