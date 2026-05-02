@@ -7,9 +7,26 @@ BASE_URL = "https://api.mixcloud.com"
 UPLOAD_URL = "https://upload.mixcloud.com"
 
 
+def _token() -> str | None:
+    """Return the best available Mixcloud access token for the current context.
+
+    In HTTP OAuth mode, get_access_token() returns the token stored by
+    MixcloudOAuthProxy for this session — authenticated requests get higher
+    Mixcloud rate limits. Falls back to MIXCLOUD_ACCESS_TOKEN env var (set by
+    the sidecar OAuth callback or manually via mixcloud-mcp-oauth).
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token
+        token_obj = get_access_token()
+        if token_obj and token_obj.token:
+            return token_obj.token
+    except Exception:
+        pass
+    return os.getenv("MIXCLOUD_ACCESS_TOKEN") or None
+
+
 def _params(extra: dict | None = None) -> dict:
-    """Inject access token into query params if set in env."""
-    token = os.getenv("MIXCLOUD_ACCESS_TOKEN")
+    token = _token()
     base = {"access_token": token} if token else {}
     return {**base, **(extra or {})}
 
@@ -39,6 +56,7 @@ async def mixcloud_post_multipart(
     data: dict,
     picture_bytes: bytes | None = None,
     picture_filename: str | None = None,
+    access_token: str | None = None,
 ) -> dict:
     """POST multipart/form-data to the Mixcloud upload endpoint.
 
@@ -48,13 +66,17 @@ async def mixcloud_post_multipart(
     multipart boundary automatically. Never set Content-Type manually when using
     `files`; httpx would override it and remove the boundary parameter.
 
+    Args:
+        access_token: Mixcloud access token. If None, falls back to
+            MIXCLOUD_ACCESS_TOKEN env var (used in non-OAuth deployments).
+
     Raises:
-        RuntimeError: If MIXCLOUD_ACCESS_TOKEN is not set.
+        RuntimeError: If no access token is available.
         httpx.HTTPStatusError: If Mixcloud returns a 4xx or 5xx response.
     """
-    token = os.getenv("MIXCLOUD_ACCESS_TOKEN")
+    token = access_token or os.getenv("MIXCLOUD_ACCESS_TOKEN")
     if not token:
-        raise RuntimeError("MIXCLOUD_ACCESS_TOKEN is not set")
+        raise RuntimeError("No Mixcloud access token — set MIXCLOUD_ACCESS_TOKEN or authenticate via OAuth")
 
     files: dict = {"mp3": (filename, mp3_bytes, "audio/mpeg")}
     if picture_bytes and picture_filename:

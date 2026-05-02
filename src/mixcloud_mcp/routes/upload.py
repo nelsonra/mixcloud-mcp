@@ -10,6 +10,12 @@ from mixcloud_mcp import upload_log
 
 
 async def upload_endpoint(request: Request) -> JSONResponse:
+    # Extract Mixcloud token from Authorization header.
+    # In OAuth mode the tool passes the user's Mixcloud token; in MCP_API_KEY
+    # mode there is no per-user token so we fall back to the env var.
+    auth_header = request.headers.get("authorization", "")
+    bearer_token = auth_header.removeprefix("Bearer ").strip() or None
+
     form = await request.form()
 
     mp3 = form.get("mp3")
@@ -50,6 +56,7 @@ async def upload_endpoint(request: Request) -> JSONResponse:
             data={**scalar_fields, "name": str(name)},
             picture_bytes=picture_bytes,
             picture_filename=picture_filename,
+            access_token=bearer_token,
         )
         upload_log.record({
             "filename": getattr(mp3, "filename", None),

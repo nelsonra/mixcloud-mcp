@@ -3,11 +3,10 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
-import httpx
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig, ResourceCSP
+from fastmcp.server.dependencies import get_access_token
 
-from mixcloud_mcp.api.client import mixcloud_post_multipart
 from mixcloud_mcp import upload_log
 
 RESOURCE_URI = "ui://mixcloud/upload-cloudcast.html"
@@ -17,14 +16,16 @@ HTML_PATH = Path(__file__).parents[4] / "mcp-app" / "dist" / "mcp-app.html"
 
 
 def _upload_url() -> str:
-    port = os.getenv("MCP_PORT", "8000")
-    public_url = os.getenv("MCP_PUBLIC_URL", f"http://localhost:{port}")
-    return f"{public_url.rstrip('/')}/upload"
+    # MCP_PUBLIC_URL wins in all modes (remote hosting, or explicit override).
+    if public_url := os.getenv("MCP_PUBLIC_URL"):
+        return f"{public_url.rstrip('/')}/upload"
+    # UPLOAD_PORT → sidecar (stdio mode). MCP_PORT → HTTP server mode.
+    port = os.getenv("UPLOAD_PORT") or os.getenv("MCP_PORT", "8000")
+    return f"http://localhost:{port}/upload"
 
 
 def register(mcp: FastMCP) -> None:
     upload_url = _upload_url()
-    upload_token = os.getenv("MCP_API_KEY")
 
     # CSP needs the *origin* (scheme + host + port), not the full path.
     # The browser sandbox blocks fetch() to any origin not in this list.
@@ -38,6 +39,13 @@ def register(mcp: FastMCP) -> None:
         Args:
             name: Optional mix or show title to pre-fill in the upload form.
         """
+        # HTTP OAuth mode: get_access_token().token is the Mixcloud token stored
+        # by the proxy. All other modes (stdio sidecar, plain MCP_API_KEY) fall
+        # back to MIXCLOUD_ACCESS_TOKEN from env — the sidecar writes it there
+        # after the OAuth callback completes.
+        access = get_access_token()
+        upload_token = access.token if access else os.getenv("MIXCLOUD_ACCESS_TOKEN")
+
         return json.dumps({
             "upload_url": upload_url,
             "upload_token": upload_token,

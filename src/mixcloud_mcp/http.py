@@ -15,6 +15,12 @@ load_dotenv()
 
 from mixcloud_mcp.server import mcp  # noqa: E402
 from mixcloud_mcp.routes.upload import route as upload_route  # noqa: E402
+from mixcloud_mcp.auth import (  # noqa: E402
+    MixcloudOAuthProxy,
+    MixcloudTokenVerifier,
+    MIXCLOUD_AUTH_URL,
+    MIXCLOUD_TOKEN_URL,
+)
 
 # In-memory rate limit store: {ip: [timestamp, ...]}
 _request_log: dict[str, list[float]] = defaultdict(list)
@@ -61,11 +67,22 @@ class McpMiddleware:
             return
         _request_log[ip].append(now)
 
-        # Auth — skip if DISABLE_AUTH=true or MCP_API_KEY not set
+        # /upload has its own auth: the client sends the Mixcloud token as Bearer.
+        # Mixcloud's API rejects it if invalid, so no separate check is needed here.
+        if path == "/upload":
+            await self.app(scope, receive, send)
+            return
+
+        # Auth — skip if DISABLE_AUTH=true or MCP_API_KEY not set.
+        # When OAuthProxy is configured, the MCP routes are protected by OAuth
+        # at the FastMCP layer; MCP_API_KEY is only used when OAuth is not set up.
         disable_auth = os.getenv("DISABLE_AUTH", "").lower() == "true"
         api_key = os.getenv("MCP_API_KEY")
+        oauth_configured = bool(
+            os.getenv("MIXCLOUD_CLIENT_ID") and os.getenv("MIXCLOUD_CLIENT_SECRET")
+        )
 
-        if not disable_auth and api_key:
+        if not disable_auth and api_key and not oauth_configured:
             headers = {k.lower(): v for k, v in scope.get("headers", [])}
             auth = headers.get(b"authorization", b"").decode()
             if auth != f"Bearer {api_key}":
@@ -83,13 +100,35 @@ def run() -> None:
     port = int(os.getenv("MCP_PORT", "8000"))
     disable_auth = os.getenv("DISABLE_AUTH", "").lower() == "true"
     api_key = os.getenv("MCP_API_KEY")
+    client_id = os.getenv("MIXCLOUD_CLIENT_ID")
+    client_secret = os.getenv("MIXCLOUD_CLIENT_SECRET")
+    public_url = os.getenv("MCP_PUBLIC_URL", f"http://localhost:{port}")
 
-    if not disable_auth and not api_key:
-        print("ERROR: MCP_API_KEY is required. Generate one with: mixcloud-mcp-keygen", file=sys.stderr)
-        print("       Or set DISABLE_AUTH=true to run without auth (local dev only)", file=sys.stderr)
+    oauth_configured = bool(client_id and client_secret)
+
+    if not disable_auth and not api_key and not oauth_configured:
+        print("ERROR: Authentication is required. Either:", file=sys.stderr)
+        print("  - Set MIXCLOUD_CLIENT_ID + MIXCLOUD_CLIENT_SECRET for OAuth", file=sys.stderr)
+        print("  - Set MCP_API_KEY for simple Bearer token auth", file=sys.stderr)
+        print("  - Set DISABLE_AUTH=true for local dev only", file=sys.stderr)
         sys.exit(1)
 
-    mcp_starlette = mcp.http_app(transport="streamable-http")
+    auth = None
+    if oauth_configured:
+        auth = MixcloudOAuthProxy(
+            upstream_authorization_endpoint=MIXCLOUD_AUTH_URL,
+            upstream_token_endpoint=MIXCLOUD_TOKEN_URL,
+            upstream_client_id=client_id,
+            upstream_client_secret=client_secret,
+            token_verifier=MixcloudTokenVerifier(),
+            base_url=public_url,
+            forward_pkce=False,
+            extra_token_params={"method": "GET"},
+            require_authorization_consent=False,
+            fallback_access_token_expiry_seconds=365 * 24 * 3600,
+        )
+
+    mcp_starlette = mcp.http_app(transport="streamable-http", auth=auth)
 
     app = Starlette(
         routes=[
@@ -111,7 +150,10 @@ def run() -> None:
 
     print(f"Mixcloud MCP HTTP server starting on port {port}", file=sys.stderr)
     print(f"Health:   GET  http://0.0.0.0:{port}/ping", file=sys.stderr)
-    print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (Authorization: Bearer <MCP_API_KEY>)", file=sys.stderr)
+    if oauth_configured:
+        print(f"Endpoint: POST {public_url}/mcp  (OAuth — authenticate via {public_url}/authorize)", file=sys.stderr)
+    else:
+        print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (Authorization: Bearer <MCP_API_KEY>)", file=sys.stderr)
     print(f"Upload:   POST http://0.0.0.0:{port}/upload", file=sys.stderr)
     if disable_auth:
         print("WARNING: Auth is disabled — do not run this way in production", file=sys.stderr)
