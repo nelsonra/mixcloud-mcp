@@ -32,40 +32,35 @@ mixcloud-mcp/
 ├── pyproject.toml          ← project config + dependencies (like package.json)
 ├── uv.lock                 ← lockfile (like package-lock.json) — commit this
 │
+├── docs/adr/               ← Architecture Decision Records
+│
+├── mcp-app/                ← React upload UI (MCP App, built with Vite)
+│   └── dist/mcp-app.html   ← self-contained bundle — committed, rebuilt when UI changes
+│
 ├── src/
 │   └── mixcloud_mcp/
-│       ├── __init__.py     ← marks this folder as a Python package
 │       ├── server.py       ← creates the FastMCP app and registers all tools
-│       ├── stdio.py        ← entry point: stdio transport (Claude Desktop / local)
-│       ├── http.py         ← entry point: HTTP transport (hosted / remote clients)
+│       ├── stdio.py        ← entry point: stdio transport; starts sidecar if OAuth configured
+│       ├── http.py         ← entry point: HTTP transport; wires OAuth proxy, rate limiting
+│       ├── auth.py         ← MixcloudOAuthProxy + MixcloudTokenVerifier (HTTP OAuth)
+│       ├── sidecar.py      ← lightweight sidecar HTTP server for stdio mode
+│       ├── oauth.py        ← mixcloud-mcp-oauth CLI (one-time token flow, no credentials needed)
+│       ├── keygen.py       ← mixcloud-mcp-keygen CLI
+│       ├── upload_log.py   ← in-memory upload result log (deque, last 20 entries)
 │       │
 │       ├── api/
-│       │   ├── __init__.py
-│       │   └── client.py   ← thin httpx wrapper for the Mixcloud REST API
+│       │   └── client.py   ← Mixcloud API wrapper; injects token from session or env
 │       │
-│       └── tools/          ← one sub-folder per tool category
-│           ├── __init__.py
-│           ├── search/
-│           │   ├── __init__.py             ← register() barrel — wires tools to mcp
-│           │   ├── types.py                ← Pydantic models for this category
-│           │   └── search_cloudcasts.py    ← tool implementation
-│           ├── tracks/
-│           │   ├── __init__.py
-│           │   ├── types.py
-│           │   └── get_cloudcast.py
-│           └── users/
-│               ├── __init__.py
-│               ├── types.py
-│               └── get_user.py
+│       ├── routes/
+│       │   └── upload.py   ← POST /upload — receives multipart form, forwards to Mixcloud
+│       │
+│       └── tools/
+│           ├── search/     ← search_cloudcasts
+│           ├── tracks/     ← get_cloudcast
+│           ├── users/      ← get_user, get_user_cloudcasts, get_user_followers, get_user_following
+│           └── upload/     ← upload_cloudcast (MCP App UI tool)
 │
 ├── tests/
-│   ├── __init__.py
-│   └── tools/
-│       ├── __init__.py
-│       ├── test_search.py
-│       ├── test_tracks.py
-│       └── test_users.py
-│
 └── playground/             ← scratch space for experiments, not production code
 ```
 
@@ -97,11 +92,17 @@ uv run python -m mixcloud_mcp.http
 
 ## Environment variables
 
-| Variable | Required | Description |
+| Variable | Mode | Description |
 |---|---|---|
-| `MIXCLOUD_ACCESS_TOKEN` | No | OAuth token for authenticated requests. Public data works without it. |
-| `MCP_API_KEY` | HTTP only | Bearer token to protect the HTTP endpoint |
-| `MCP_PORT` | No | HTTP server port (default: `8000`) |
+| `MIXCLOUD_CLIENT_ID` | both | OAuth app client ID. Required for OAuth auth and uploads. |
+| `MIXCLOUD_CLIENT_SECRET` | both | OAuth app client secret. Required for OAuth auth and uploads. |
+| `MIXCLOUD_ACCESS_TOKEN` | both | Direct token — alternative to OAuth, set manually or via `mixcloud-mcp-oauth`. |
+| `UPLOAD_PORT` | stdio | Sidecar port for OAuth callback + uploads (default: `4000`). |
+| `MCP_API_KEY` | HTTP | Static bearer token auth. Used when OAuth is not configured. |
+| `MCP_PORT` | HTTP | HTTP server port (default: `8000`). |
+| `MCP_PUBLIC_URL` | HTTP | Public base URL. **Required for OAuth** — Mixcloud redirects to `<MCP_PUBLIC_URL>/auth/callback`. |
+| `CORS_ORIGIN` | HTTP | Allowed CORS origin for `/upload` (default: `*`). |
+| `DISABLE_AUTH` | HTTP | Set `true` to skip auth — local dev only. |
 
 ---
 
