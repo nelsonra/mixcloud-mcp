@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+
 import httpx
 
 BASE_URL = "https://api.mixcloud.com"
@@ -76,7 +77,9 @@ async def mixcloud_post_multipart(
     """
     token = access_token or os.getenv("MIXCLOUD_ACCESS_TOKEN")
     if not token:
-        raise RuntimeError("No Mixcloud access token — set MIXCLOUD_ACCESS_TOKEN or authenticate via OAuth")
+        raise RuntimeError(
+            "No Mixcloud access token — set MIXCLOUD_ACCESS_TOKEN or authenticate via OAuth"
+        )
 
     files: dict = {"mp3": (filename, mp3_bytes, "audio/mpeg")}
     if picture_bytes and picture_filename:

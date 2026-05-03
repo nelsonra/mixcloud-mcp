@@ -1,6 +1,6 @@
 """In-memory upload log — capped deque, no persistence required."""
 from collections import deque
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 # Holds the 20 most recent upload attempts; oldest entry drops automatically when full.
 # Python's deque(maxlen=N) is the idiomatic bounded queue — no manual trimming needed.

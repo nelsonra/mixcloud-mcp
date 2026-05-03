@@ -13,6 +13,7 @@ Why a sidecar instead of the full OAuthProxy:
 """
 
 import os
+import socket
 import sys
 import threading
 import urllib.parse
@@ -31,19 +32,15 @@ from mixcloud_mcp.routes.upload import route as upload_route
 SIDECAR_PORT_DEFAULT = 4000
 
 
-def _find_env_file() -> Path:
-    path = Path.cwd()
-    while path != path.parent:
-        candidate = path / ".env"
-        if candidate.exists():
-            return candidate
-        path = path.parent
-    return Path.cwd() / ".env"
+def _user_config_file() -> Path:
+    config_dir = Path.home() / ".config" / "mixcloud-mcp"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    return config_dir / ".env"
 
 
 def _persist_token(token: str) -> None:
     from dotenv import set_key
-    env_file = _find_env_file()
+    env_file = _user_config_file()
     set_key(str(env_file), "MIXCLOUD_ACCESS_TOKEN", token, quote_mode="never")
     os.environ["MIXCLOUD_ACCESS_TOKEN"] = token
     print("[sidecar] Mixcloud token saved — tools are now authenticated.", file=sys.stderr)
@@ -73,8 +70,9 @@ def _build_app(port: int) -> Starlette:
                 status_code=400,
             )
 
-        import httpx
         from urllib.parse import parse_qsl
+
+        import httpx
 
         try:
             resp = httpx.get(MIXCLOUD_TOKEN_URL, params={
@@ -126,9 +124,20 @@ def _build_app(port: int) -> Starlette:
     return app
 
 
+def _port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.2)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 def start(port: int | None = None) -> int:
     """Start the sidecar in a background daemon thread. Returns the port used."""
     port = port or int(os.getenv("UPLOAD_PORT", str(SIDECAR_PORT_DEFAULT)))
+
+    if _port_in_use(port):
+        print(f"[sidecar] Port {port} already in use — reusing existing sidecar.", file=sys.stderr)
+        return port
+
     app = _build_app(port)
 
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")

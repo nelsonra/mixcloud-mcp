@@ -2,8 +2,9 @@
 import os
 import sys
 import time
-import uvicorn
 from collections import defaultdict
+
+import uvicorn
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
@@ -11,16 +12,14 @@ from starlette.responses import JSONResponse
 from starlette.routing import Mount
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-load_dotenv()
-
-from mixcloud_mcp.server import mcp  # noqa: E402
-from mixcloud_mcp.routes.upload import route as upload_route  # noqa: E402
-from mixcloud_mcp.auth import (  # noqa: E402
-    MixcloudOAuthProxy,
-    MixcloudTokenVerifier,
+from mixcloud_mcp.auth import (
     MIXCLOUD_AUTH_URL,
     MIXCLOUD_TOKEN_URL,
+    MixcloudOAuthProxy,
+    MixcloudTokenVerifier,
 )
+from mixcloud_mcp.routes.upload import route as upload_route
+from mixcloud_mcp.server import mcp
 
 # In-memory rate limit store: {ip: [timestamp, ...]}
 _request_log: dict[str, list[float]] = defaultdict(list)
@@ -97,6 +96,7 @@ class McpMiddleware:
 
 
 def run() -> None:
+    load_dotenv()
     port = int(os.getenv("MCP_PORT", "8000"))
     disable_auth = os.getenv("DISABLE_AUTH", "").lower() == "true"
     api_key = os.getenv("MCP_API_KEY")
@@ -114,7 +114,7 @@ def run() -> None:
         sys.exit(1)
 
     auth = None
-    if oauth_configured:
+    if oauth_configured and not disable_auth:
         auth = MixcloudOAuthProxy(
             upstream_authorization_endpoint=MIXCLOUD_AUTH_URL,
             upstream_token_endpoint=MIXCLOUD_TOKEN_URL,
@@ -128,7 +128,8 @@ def run() -> None:
             fallback_access_token_expiry_seconds=365 * 24 * 3600,
         )
 
-    mcp_starlette = mcp.http_app(transport="streamable-http", auth=auth)
+    mcp.auth = auth
+    mcp_starlette = mcp.http_app(transport="streamable-http")
 
     app = Starlette(
         routes=[
@@ -150,13 +151,16 @@ def run() -> None:
 
     print(f"Mixcloud MCP HTTP server starting on port {port}", file=sys.stderr)
     print(f"Health:   GET  http://0.0.0.0:{port}/ping", file=sys.stderr)
-    if oauth_configured:
-        print(f"Endpoint: POST {public_url}/mcp  (OAuth — authenticate via {public_url}/authorize)", file=sys.stderr)
-    else:
-        print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (Authorization: Bearer <MCP_API_KEY>)", file=sys.stderr)
-    print(f"Upload:   POST http://0.0.0.0:{port}/upload", file=sys.stderr)
     if disable_auth:
+        print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (no auth — dev only)", file=sys.stderr)
         print("WARNING: Auth is disabled — do not run this way in production", file=sys.stderr)
+    elif oauth_configured:
+        print(f"Endpoint: POST {public_url}/mcp  (OAuth — authenticate via {public_url}/authorize)",
+              file=sys.stderr)
+    else:
+        print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (Authorization: Bearer <MCP_API_KEY>)",
+              file=sys.stderr)
+    print(f"Upload:   POST http://0.0.0.0:{port}/upload", file=sys.stderr)
 
     uvicorn.run(app, host="0.0.0.0", port=port)
 

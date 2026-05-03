@@ -1,5 +1,7 @@
 import json
+
 from fastmcp import FastMCP
+
 from mixcloud_mcp.api.client import mixcloud_get
 from mixcloud_mcp.tools.search.types import SearchResponse
 

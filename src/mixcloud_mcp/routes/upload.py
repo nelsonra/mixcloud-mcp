@@ -5,8 +5,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from mixcloud_mcp.api.client import mixcloud_post_multipart
 from mixcloud_mcp import upload_log
+from mixcloud_mcp.api.client import mixcloud_post_multipart
 
 
 async def upload_endpoint(request: Request) -> JSONResponse:

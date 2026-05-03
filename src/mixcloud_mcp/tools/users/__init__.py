@@ -1,4 +1,5 @@
 from fastmcp import FastMCP
+
 from .get_user import register as register_get_user
 from .get_user_cloudcasts import register as register_get_user_cloudcasts
 from .get_user_followers import register as register_get_user_followers

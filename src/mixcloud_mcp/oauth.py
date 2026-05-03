@@ -1,7 +1,7 @@
 """One-time OAuth flow to obtain a Mixcloud access token and save it to .env."""
 import os
-import sys
 import socket
+import sys
 import threading
 import urllib.parse
 import webbrowser

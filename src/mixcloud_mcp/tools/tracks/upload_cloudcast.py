@@ -7,8 +7,6 @@ from fastmcp import FastMCP
 from fastmcp.apps import AppConfig, ResourceCSP
 from fastmcp.server.dependencies import get_access_token
 
-from mixcloud_mcp import upload_log
-
 RESOURCE_URI = "ui://mixcloud/upload-cloudcast.html"
 
 # Walk up from src/mixcloud_mcp/tools/tracks/ to the project root, then into mcp-app/dist/.

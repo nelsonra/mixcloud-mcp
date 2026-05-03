@@ -1,4 +1,5 @@
 from fastmcp import FastMCP
+
 from .get_cloudcast import register as register_get_cloudcast
 
 

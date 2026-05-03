@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from mixcloud_mcp.tools.types import Tag, CloudcastUser
+
+from mixcloud_mcp.tools.types import CloudcastUser, Tag
 
 
 class Cloudcast(BaseModel):

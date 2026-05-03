@@ -48,7 +48,39 @@ uv run mixcloud-mcp-oauth
 uv run mixcloud-mcp
 ```
 
-If `MIXCLOUD_CLIENT_ID` and `MIXCLOUD_CLIENT_SECRET` are set, a sidecar starts on port 4000. Visit `http://localhost:4000/oauth/authorize` once to authenticate.
+If `MIXCLOUD_CLIENT_ID` and `MIXCLOUD_CLIENT_SECRET` are set, a sidecar starts on port 4000 and the browser opens automatically to the Mixcloud OAuth consent page. After you approve, the token is saved to `~/.config/mixcloud-mcp/.env` and persists across restarts.
+
+If the browser does not open (e.g. headless), visit `http://localhost:4000/oauth/authorize` manually.
+
+**Running in Claude Desktop from a local checkout:**
+
+Add this to your `claude_desktop_config.json` (Mac: `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "mixcloud": {
+      "command": "/Users/yourname/.local/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/path/to/mixcloud-mcp",
+        "mixcloud-mcp"
+      ],
+      "env": {
+        "MIXCLOUD_CLIENT_ID":"YOUR_MIXCLOUD_CLIENT_ID",
+        "MIXCLOUD_CLIENT_SECRET":"YOUR_MIXCLOUD_CLIENT_SECRET",
+        "MCP_API_KEY":"YOUR_MCP_API_KEY",
+        "MCP_PORT":"YOUR_MCP_PORT",
+        "UPLOAD_PORT":"YOUR_UPLOAD_PORT"
+      }
+    }
+  }
+}
+```
+
+- `--directory` must point to the **project root** (where `pyproject.toml` lives), not to `src/mixcloud_mcp/`. Pointing at the `src` subdirectory puts it on `sys.path` directly, which shadows Python's stdlib `http` module and crashes on import.
+- Run `which uv` to get the full path to uv — Claude Desktop does not inherit your shell PATH.
 
 **HTTP server:**
 ```bash
@@ -172,7 +204,7 @@ mixcloud-mcp/
 └── src/mixcloud_mcp/
     ├── server.py             ← FastMCP app — registers all tools and resources
     ├── stdio.py              ← stdio entry point (starts sidecar if OAuth configured)
-    ├── http.py               ← HTTP entry point (Starlette wrapper, OAuth proxy, rate limiting)
+    ├── http_server.py        ← HTTP entry point (Starlette wrapper, OAuth proxy, rate limiting)
     ├── auth.py               ← MixcloudOAuthProxy + MixcloudTokenVerifier
     ├── sidecar.py            ← lightweight sidecar for stdio mode (OAuth + upload)
     ├── keygen.py             ← mixcloud-mcp-keygen CLI

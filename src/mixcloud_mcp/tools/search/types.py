@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from mixcloud_mcp.tools.types import Tag, CloudcastUser  # noqa: F401
+
+from mixcloud_mcp.tools.types import CloudcastUser, Tag  # noqa: F401
 
 
 class CloudcastResult(BaseModel):

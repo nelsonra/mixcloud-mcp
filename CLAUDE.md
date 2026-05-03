@@ -41,7 +41,7 @@ mixcloud-mcp/
 │   └── mixcloud_mcp/
 │       ├── server.py       ← creates the FastMCP app and registers all tools
 │       ├── stdio.py        ← entry point: stdio transport; starts sidecar if OAuth configured
-│       ├── http.py         ← entry point: HTTP transport; wires OAuth proxy, rate limiting
+│       ├── http_server.py  ← entry point: HTTP transport; wires OAuth proxy, rate limiting
 │       ├── auth.py         ← MixcloudOAuthProxy + MixcloudTokenVerifier (HTTP OAuth)
 │       ├── sidecar.py      ← lightweight sidecar HTTP server for stdio mode
 │       ├── oauth.py        ← mixcloud-mcp-oauth CLI (one-time token flow, no credentials needed)
@@ -85,7 +85,7 @@ uv run fastmcp dev src/mixcloud_mcp/server.py
 uv run python -m mixcloud_mcp.stdio
 
 # 6. Run as HTTP server (for hosted/remote clients)
-uv run python -m mixcloud_mcp.http
+uv run python -m mixcloud_mcp.http_server
 ```
 
 ---
