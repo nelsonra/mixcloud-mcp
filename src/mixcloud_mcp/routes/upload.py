@@ -58,11 +58,23 @@ async def upload_endpoint(request: Request) -> JSONResponse:
             picture_filename=picture_filename,
             access_token=bearer_token,
         )
+        mixcloud_key = result.get("result", {}).get("key")
+        if not mixcloud_key:
+            upload_log.record({
+                "filename": getattr(mp3, "filename", None),
+                "name": str(name),
+                "status": "error",
+                "error": "Mixcloud accepted the file but returned no upload key",
+            })
+            return JSONResponse(
+                {"error": "Upload appeared to succeed but Mixcloud returned no track key — the file may not have been processed"},
+                status_code=502,
+            )
         upload_log.record({
             "filename": getattr(mp3, "filename", None),
             "name": str(name),
-            "mixcloud_url": result.get("url"),
-            "status": "success" if result.get("result") else "error",
+            "mixcloud_url": f"https://www.mixcloud.com{mixcloud_key}",
+            "status": "success",
         })
         return JSONResponse(result)
     except httpx.HTTPStatusError as e:

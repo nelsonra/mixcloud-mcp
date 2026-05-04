@@ -11,12 +11,15 @@ interface ToolResultData {
 }
 
 export interface UploadResult {
-  result?: boolean
-  url?: string
+  result?: {
+    success: boolean
+    message: string
+    key: string
+  }
   error?: string
 }
 
-const MAX_MP3_BYTES = 4294967296
+const MAX_MP3_BYTES = 1073741824 // 1 GB — typical upper bound for a long show
 const MAX_PICTURE_BYTES = 10485760
 
 export function useMixcloudUploader() {
@@ -77,7 +80,7 @@ export function useMixcloudUploader() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const picked = e.target.files?.[0] ?? null
       if (picked && picked.size > MAX_MP3_BYTES) {
-        setErrorMsg('MP3 file exceeds the 4 GB limit.')
+        setErrorMsg('MP3 file exceeds the 1 GB limit.')
         e.target.value = ''
         return
       }
@@ -176,21 +179,21 @@ export function useMixcloudUploader() {
       }
 
       const data = (await response.json()) as UploadResult
+      const mixcloudKey = data.result?.key
+      if (!mixcloudKey) {
+        setErrorMsg((data as { error?: string }).error ?? 'Upload appeared to succeed but no track key was returned')
+        setUploadState('error')
+        return
+      }
+
       setUploadResult(data)
       setUploadState('success')
 
-      const mixcloudUrl = data.url ? `https://www.mixcloud.com${data.url}` : null
+      const mixcloudUrl = `https://www.mixcloud.com${mixcloudKey}`
       // updateModelContext is only available in a real MCP host (e.g. Claude Desktop).
       // fastmcp dev apps preview doesn't implement it — ignore the -32601 error.
       await app?.updateModelContext({
-        content: [
-          {
-            type: 'text',
-            text: mixcloudUrl
-              ? `Uploaded "${name.trim()}" to Mixcloud: ${mixcloudUrl}`
-              : `Uploaded "${name.trim()}" to Mixcloud.`,
-          },
-        ],
+        content: [{ type: 'text', text: `Uploaded "${name.trim()}" to Mixcloud: ${mixcloudUrl}` }],
       }).catch(() => {})
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : String(err))

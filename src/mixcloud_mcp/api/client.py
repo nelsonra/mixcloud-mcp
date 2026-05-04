@@ -5,7 +5,6 @@ import sys
 import httpx
 
 BASE_URL = "https://api.mixcloud.com"
-UPLOAD_URL = "https://upload.mixcloud.com"
 
 
 def _token() -> str | None:
@@ -61,7 +60,9 @@ async def mixcloud_post_multipart(
 ) -> dict:
     """POST multipart/form-data to the Mixcloud upload endpoint.
 
-    Mixcloud's upload API lives on a separate host (upload.mixcloud.com).
+    Token goes in the query string — Mixcloud's upload endpoint requires it there,
+    not in the form body (passing it in the body returns 200 with no response JSON).
+
     httpx expects file fields as (filename, bytes, content_type) tuples in the
     `files` kwarg, and scalar fields in the `data` kwarg — it handles the
     multipart boundary automatically. Never set Content-Type manually when using
@@ -88,8 +89,9 @@ async def mixcloud_post_multipart(
     # Large files can take minutes — use a generous timeout.
     async with httpx.AsyncClient(timeout=600.0) as client:
         response = await client.post(
-            "https://upload.mixcloud.com/upload/",
-            data={**data, "access_token": token},
+            f"{BASE_URL}/upload/",
+            params={"access_token": token},
+            data=data,
             files=files,
         )	
         try:

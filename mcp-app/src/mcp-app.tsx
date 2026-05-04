@@ -45,8 +45,8 @@ function MixcloudUploadApp() {
   if (!app || mode === 'loading') return <div className={styles.message}>Loading…</div>
 
   if (uploadState === 'success' && uploadResult) {
-    const mixcloudUrl = uploadResult.url
-      ? `https://www.mixcloud.com${uploadResult.url}`
+    const mixcloudUrl = uploadResult.result?.key
+      ? `https://www.mixcloud.com${uploadResult.result.key}`
       : null
     return (
       <div className={styles.wrapper}>

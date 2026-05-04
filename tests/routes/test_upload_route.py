@@ -50,12 +50,16 @@ async def test_no_token_returns_500(client):
     assert "access token" in response.json()["error"].lower()
 
 
+FAKE_MIXCLOUD_SUCCESS = {
+    "result": {"success": True, "message": "Uploaded My Mix", "key": "/djnelson/my-mix/"}
+}
+
+
 @pytest.mark.asyncio
 async def test_successful_upload_returns_200(client):
-    fake_result = {"result": "https://www.mixcloud.com/djnelson/my-mix/", "url": "https://www.mixcloud.com/djnelson/my-mix/"}
     with patch(
         "mixcloud_mcp.routes.upload.mixcloud_post_multipart",
-        AsyncMock(return_value=fake_result),
+        AsyncMock(return_value=FAKE_MIXCLOUD_SUCCESS),
     ):
         response = await client.post(
             "/upload",
@@ -64,7 +68,7 @@ async def test_successful_upload_returns_200(client):
             headers={"Authorization": "Bearer mixcloud-token-xyz"},
         )
     assert response.status_code == 200
-    assert response.json()["result"] == "https://www.mixcloud.com/djnelson/my-mix/"
+    assert response.json()["result"]["key"] == "/djnelson/my-mix/"
 
 
 @pytest.mark.asyncio
@@ -90,7 +94,7 @@ async def test_mixcloud_api_error_returns_502(client):
 @pytest.mark.asyncio
 async def test_bearer_token_forwarded_to_api(client):
     """The Authorization header's Bearer token is passed to mixcloud_post_multipart."""
-    mock_post = AsyncMock(return_value={"result": "ok"})
+    mock_post = AsyncMock(return_value=FAKE_MIXCLOUD_SUCCESS)
     with patch("mixcloud_mcp.routes.upload.mixcloud_post_multipart", mock_post):
         await client.post(
             "/upload",
@@ -108,7 +112,7 @@ async def test_upload_records_to_log(client):
 
     with patch(
         "mixcloud_mcp.routes.upload.mixcloud_post_multipart",
-        AsyncMock(return_value={"result": "https://www.mixcloud.com/djnelson/my-mix/", "url": "https://www.mixcloud.com/djnelson/my-mix/"}),
+        AsyncMock(return_value=FAKE_MIXCLOUD_SUCCESS),
     ):
         await client.post(
             "/upload",
@@ -121,4 +125,5 @@ async def test_upload_records_to_log(client):
     assert len(recent) == 1
     assert recent[0]["name"] == "Friday Night Set"
     assert recent[0]["status"] == "success"
+    assert recent[0]["mixcloud_url"] == "https://www.mixcloud.com/djnelson/my-mix/"
     upload_log._log.clear()
