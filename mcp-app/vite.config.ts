@@ -14,7 +14,7 @@ export default defineConfig({
     cssMinify: !isDevelopment,
     minify: !isDevelopment,
     rollupOptions: { input: INPUT },
-    outDir: 'dist',
+    outDir: '../src/mixcloud_mcp/static',
     emptyOutDir: false,
   },
 })

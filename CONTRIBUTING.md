@@ -87,7 +87,7 @@ Add this to your `claude_desktop_config.json` (Mac: `~/Library/Application Suppo
 MCP_PUBLIC_URL=http://localhost:8000 uv run mixcloud-mcp-http
 ```
 
-`MCP_PUBLIC_URL` must be set when using OAuth — it tells Mixcloud where to redirect after login (`<MCP_PUBLIC_URL>/auth/callback`). For local dev, `http://localhost:8000` works as long as you registered that callback URI in your Mixcloud app.
+`MCP_PUBLIC_URL` must be set when using OAuth — it tells Mixcloud where to redirect after login (`<MCP_PUBLIC_URL>/oauth/callback`). For local dev, `http://localhost:8000` works as long as you registered that callback URI in your Mixcloud app.
 
 Without OAuth, generate a static API key instead:
 ```bash
@@ -141,7 +141,7 @@ This opens a browser where you can call the `upload_cloudcast` tool — the uplo
 
 > Make sure `MIXCLOUD_ACCESS_TOKEN` is set in `.env` before testing uploads.
 
-If you rebuild the React app (`npm run build` in `mcp-app/`), restart the HTTP server to pick up the new bundle.
+If you rebuild the React app (`npm run build` in `mcp-app/`), commit the updated `src/mixcloud_mcp/static/mcp-app.html` and restart the HTTP server to pick up the new bundle.
 
 ---
 
@@ -183,9 +183,9 @@ With OAuth configured, Claude will prompt you to authenticate via Mixcloud on fi
 | Mode | Redirect URI to register in Mixcloud app | Env var to set |
 |---|---|---|
 | stdio (local) | `http://localhost:4000/oauth/callback` | `UPLOAD_PORT=4000` (default) |
-| HTTP (local dev) | `http://localhost:8000/auth/callback` | `MCP_PUBLIC_URL=http://localhost:8000` |
-| HTTP (hosted) | `https://your-domain.com/auth/callback` | `MCP_PUBLIC_URL=https://your-domain.com` |
-| HTTP (ngrok) | `https://xxxx.ngrok-free.app/auth/callback` | `MCP_PUBLIC_URL=https://xxxx.ngrok-free.app` |
+| HTTP (local dev) | `http://localhost:8000/oauth/callback` | `MCP_PUBLIC_URL=http://localhost:8000` |
+| HTTP (hosted) | `https://your-domain.com/oauth/callback` | `MCP_PUBLIC_URL=https://your-domain.com` |
+| HTTP (ngrok) | `https://xxxx.ngrok-free.app/oauth/callback` | `MCP_PUBLIC_URL=https://xxxx.ngrok-free.app` |
 
 ---
 
@@ -197,8 +197,7 @@ mixcloud-mcp/
 │   ├── src/
 │   │   ├── mcp-app.tsx       ← upload form component
 │   │   └── useMixcloudUploader.ts
-│   └── dist/
-│       └── mcp-app.html      ← self-contained built bundle (vite-plugin-singlefile)
+│   └── dist/                 ← intermediate build output (gitignored)
 ├── docs/
 │   └── adr/                  ← Architecture Decision Records
 └── src/mixcloud_mcp/

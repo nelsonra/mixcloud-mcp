@@ -66,32 +66,76 @@ Get your credentials at [mixcloud.com/developers](https://www.mixcloud.com/devel
 
 ## Quickstart — HTTP (hosted server, remote MCP clients)
 
-The HTTP transport is for deploying the server so remote MCP clients can connect to it over the network.
+The HTTP transport exposes the server over the network so remote MCP clients (Claude.ai, Claude Desktop configured with a URL) can connect to it.
+
+### 1. Register a Mixcloud OAuth app
+
+Go to [mixcloud.com/developers](https://www.mixcloud.com/developers/) and create an app. You will get a **Client ID** and **Client Secret**.
+
+Set the redirect URI to your server's public URL plus `/oauth/callback`:
+
+```
+https://your-server.example.com/oauth/callback
+```
+
+If you are running locally with ngrok, use your ngrok URL instead (see step 3).
+
+### 2. Configure your environment
+
+Create a `.env` file (or set these as environment variables):
+
+```bash
+MIXCLOUD_CLIENT_ID=your_client_id
+MIXCLOUD_CLIENT_SECRET=your_client_secret
+MCP_PUBLIC_URL=https://your-server.example.com   # public HTTPS URL — no port, no trailing slash
+MCP_API_KEY=your_secret_key                       # protects the MCP endpoint; generate with mixcloud-mcp-keygen
+```
+
+> **`MCP_PUBLIC_URL` is required.** It must be HTTPS and match the domain you registered as the redirect URI in your Mixcloud app. If you are running locally via ngrok, this is your ngrok URL (e.g. `https://xxxx.ngrok-free.app`). Do not include a port number — ngrok handles port mapping for you.
+
+> **Optional:** if you already have a Mixcloud access token, set `MIXCLOUD_ACCESS_TOKEN` and skip step 4.
+
+### 3. Start the server
 
 ```bash
 uvx mixcloud-mcp-http
 ```
 
-### Authentication
+On startup you will see a line like:
 
-Set `MIXCLOUD_CLIENT_ID` and `MIXCLOUD_CLIENT_SECRET` in your environment to enable OAuth. When a client connects for the first time, they are redirected to Mixcloud to authenticate — no pre-shared token required.
-
-```bash
-MIXCLOUD_CLIENT_ID=xxx \
-MIXCLOUD_CLIENT_SECRET=xxx \
-MCP_PUBLIC_URL=https://your-server.example.com \
-uvx mixcloud-mcp-http
+```
+[http] No Mixcloud token — visit https://your-server.example.com/oauth/authorize to enable uploads.
 ```
 
-Register `https://your-server.example.com/auth/callback` as the redirect URI in your Mixcloud app. The `MCP_PUBLIC_URL` must match exactly.
-
-**Without OAuth** you can protect the endpoint with a static bearer token instead:
+If you are running locally, expose the server first with ngrok:
 
 ```bash
-MCP_API_KEY=your_secret_key uvx mixcloud-mcp-http
+ngrok http 8000
 ```
 
-Clients connect by adding the server URL to their MCP configuration with `Authorization: Bearer <MCP_API_KEY>`.
+Use the ngrok HTTPS URL as `MCP_PUBLIC_URL` and make sure the same URL is registered as the redirect URI in your Mixcloud app.
+
+### 4. Authenticate with Mixcloud
+
+Open `https://your-server.example.com/oauth/authorize` in your browser and approve access. The server logs:
+
+```
+[http] Mixcloud token stored — upload tool is now authenticated.
+```
+
+The token is held in memory for the lifetime of the process. To persist it across restarts, copy the token into `MIXCLOUD_ACCESS_TOKEN` in your `.env`.
+
+### 5. Add the connector in Claude
+
+In Claude, go to **Settings → Connectors → Add custom connector** and enter:
+
+```
+https://your-server.example.com/mcp
+```
+
+> The URL must end in `/mcp`. The base URL alone will not work.
+
+Read-only tools (search, browse, get user) are available immediately. The upload tool becomes available once you have authenticated with Mixcloud in step 4.
 
 ---
 
@@ -115,9 +159,9 @@ Clients connect by adding the server URL to their MCP configuration with `Author
 
 | Variable | Default | Description |
 |---|---|---|
-| `MCP_API_KEY` | — | Bearer token for simple auth (used when OAuth is not configured). Generate with `mixcloud-mcp-keygen`. |
+| `MCP_API_KEY` | — | Bearer token protecting the MCP endpoint. Generate with `mixcloud-mcp-keygen`. |
 | `MCP_PORT` | `8000` | HTTP server port. |
-| `MCP_PUBLIC_URL` | `http://localhost:<MCP_PORT>` | Public base URL of the server. **Must be set for OAuth** — Mixcloud redirects back to `<MCP_PUBLIC_URL>/auth/callback`. |
+| `MCP_PUBLIC_URL` | `http://localhost:<MCP_PORT>` | Public base URL of the server. **Required for browser OAuth** — Mixcloud redirects back to `<MCP_PUBLIC_URL>/oauth/callback`. |
 | `CORS_ORIGIN` | `*` | Allowed CORS origin for the upload endpoint. Lock this down in production. |
 | `DISABLE_AUTH` | — | Set to `true` to skip auth — local dev only, never in production. |
 
@@ -137,11 +181,19 @@ Visit that URL once in your browser, approve access on Mixcloud, and your token 
 
 The sidecar also handles file uploads — the upload UI posts directly to `http://localhost:4000/upload`.
 
-### HTTP — OAuth proxy
+### HTTP — server-level authentication
 
-When `MIXCLOUD_CLIENT_ID` and `MIXCLOUD_CLIENT_SECRET` are set, the HTTP server acts as an OAuth proxy. Connecting MCP clients are redirected through Mixcloud's OAuth flow on first connection — no pre-shared token required. Each authenticated session gets its own Mixcloud token. All API calls and uploads use that token automatically.
+The HTTP server authenticates to Mixcloud once and shares that token across all connected MCP clients. There is no per-user token — whoever authenticates first sets the token for the lifetime of the process.
 
-The redirect URI registered in your Mixcloud app must be `<MCP_PUBLIC_URL>/auth/callback`.
+You can provide the token two ways (see the Quickstart above): pre-set `MIXCLOUD_ACCESS_TOKEN` in your environment, or visit `/oauth/authorize` in a browser after starting the server. In both cases the read-only tools are always available to any client that has the `MCP_API_KEY`; uploads become available once a Mixcloud token is present.
+
+The redirect URI registered in your Mixcloud app must be `<MCP_PUBLIC_URL>/oauth/callback`.
+
+---
+
+## Future ideas
+
+- **Per-user sessions in HTTP mode** — currently all MCP clients share a single Mixcloud token. A session layer would let each user authenticate independently and upload to their own Mixcloud account.
 
 ---
 

@@ -9,8 +9,9 @@ from fastmcp.server.dependencies import get_access_token
 
 RESOURCE_URI = "ui://mixcloud/upload-cloudcast.html"
 
-# Walk up from src/mixcloud_mcp/tools/tracks/ to the project root, then into mcp-app/dist/.
-HTML_PATH = Path(__file__).parents[4] / "mcp-app" / "dist" / "mcp-app.html"
+# src/mixcloud_mcp/static/ is included in the installed package by hatchling.
+# parents[2] navigates: tracks/ → tools/ → mixcloud_mcp/
+HTML_PATH = Path(__file__).parents[2] / "static" / "mcp-app.html"
 
 
 def _upload_url() -> str:
@@ -37,12 +38,17 @@ def register(mcp: FastMCP) -> None:
         Args:
             name: Optional mix or show title to pre-fill in the upload form.
         """
-        # HTTP OAuth mode: get_access_token().token is the Mixcloud token stored
-        # by the proxy. All other modes (stdio sidecar, plain MCP_API_KEY) fall
-        # back to MIXCLOUD_ACCESS_TOKEN from env — the sidecar writes it there
-        # after the OAuth callback completes.
         access = get_access_token()
         upload_token = access.token if access else os.getenv("MIXCLOUD_ACCESS_TOKEN")
+
+        if not upload_token:
+            public_url = os.getenv("MCP_PUBLIC_URL", "http://localhost:8000").rstrip("/")
+            auth_url = f"{public_url}/oauth/authorize"
+            return json.dumps({
+                "error": "not_authenticated",
+                "message": f"Not authenticated with Mixcloud. Visit {auth_url} to connect your account, then try again.",
+                "auth_url": auth_url,
+            })
 
         return json.dumps({
             "upload_url": upload_url,

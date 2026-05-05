@@ -35,7 +35,7 @@ mixcloud-mcp/
 ├── docs/adr/               ← Architecture Decision Records
 │
 ├── mcp-app/                ← React upload UI (MCP App, built with Vite)
-│   └── dist/mcp-app.html   ← self-contained bundle — committed, rebuilt when UI changes
+│   └── dist/               ← intermediate build output (gitignored)
 │
 ├── src/
 │   └── mixcloud_mcp/
@@ -47,6 +47,9 @@ mixcloud-mcp/
 │       ├── oauth.py        ← mixcloud-mcp-oauth CLI (one-time token flow, no credentials needed)
 │       ├── keygen.py       ← mixcloud-mcp-keygen CLI
 │       ├── upload_log.py   ← in-memory upload result log (deque, last 20 entries)
+│       │
+│       ├── static/
+│       │   └── mcp-app.html ← built upload UI bundle — committed, rebuilt by `npm run build` in mcp-app/
 │       │
 │       ├── api/
 │       │   └── client.py   ← Mixcloud API wrapper; injects token from session or env

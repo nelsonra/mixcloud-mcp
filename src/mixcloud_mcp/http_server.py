@@ -2,22 +2,20 @@
 import os
 import sys
 import time
+import urllib.parse
 from collections import defaultdict
 
+import httpx
 import uvicorn
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
-from starlette.routing import Mount
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from mixcloud_mcp.auth import (
-    MIXCLOUD_AUTH_URL,
-    MIXCLOUD_TOKEN_URL,
-    MixcloudOAuthProxy,
-    MixcloudTokenVerifier,
-)
+from mixcloud_mcp.auth import MIXCLOUD_AUTH_URL, MIXCLOUD_TOKEN_URL
 from mixcloud_mcp.routes.upload import route as upload_route
 from mixcloud_mcp.server import mcp
 
@@ -66,22 +64,24 @@ class McpMiddleware:
             return
         _request_log[ip].append(now)
 
-        # /upload has its own auth: the client sends the Mixcloud token as Bearer.
-        # Mixcloud's API rejects it if invalid, so no separate check is needed here.
-        if path == "/upload":
+        # These routes must be reachable without a bearer token:
+        # /upload — client sends the Mixcloud token; Mixcloud rejects if invalid.
+        # /oauth/* — browser redirects from Mixcloud can't inject headers.
+        # /.well-known/* and /register — MCP protocol discovery; clients probe these
+        #   before they know how to authenticate. Must return 404 (not 401) if unused.
+        if (
+            path == "/upload"
+            or path.startswith("/oauth/")
+            or path.startswith("/.well-known/")
+            or path == "/register"
+        ):
             await self.app(scope, receive, send)
             return
 
-        # Auth — skip if DISABLE_AUTH=true or MCP_API_KEY not set.
-        # When OAuthProxy is configured, the MCP routes are protected by OAuth
-        # at the FastMCP layer; MCP_API_KEY is only used when OAuth is not set up.
         disable_auth = os.getenv("DISABLE_AUTH", "").lower() == "true"
         api_key = os.getenv("MCP_API_KEY")
-        oauth_configured = bool(
-            os.getenv("MIXCLOUD_CLIENT_ID") and os.getenv("MIXCLOUD_CLIENT_SECRET")
-        )
 
-        if not disable_auth and api_key and not oauth_configured:
+        if not disable_auth and api_key:
             headers = {k.lower(): v for k, v in scope.get("headers", [])}
             auth = headers.get(b"authorization", b"").decode()
             if auth != f"Bearer {api_key}":
@@ -93,6 +93,76 @@ class McpMiddleware:
                 return
 
         await self.app(scope, receive, send)
+
+
+def _build_oauth_routes(client_id: str, client_secret: str, public_url: str) -> list:
+    """Build /oauth/authorize and /oauth/callback routes.
+
+    Same pattern as the sidecar: the server authenticates to Mixcloud once,
+    stores the token in os.environ, and all tools share it.
+    """
+    redirect_uri = f"{public_url.rstrip('/')}/oauth/callback"
+
+    async def authorize(_request: Request) -> RedirectResponse:
+        params = urllib.parse.urlencode({
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+        })
+        return RedirectResponse(url=f"{MIXCLOUD_AUTH_URL}?{params}")
+
+    async def callback(request: Request) -> HTMLResponse:
+        code = request.query_params.get("code")
+        error = request.query_params.get("error")
+
+        if error or not code:
+            msg = error or "No authorization code received"
+            return HTMLResponse(
+                f"<html><body><p>Authorization failed: {msg}</p></body></html>",
+                status_code=400,
+            )
+
+        try:
+            resp = httpx.get(MIXCLOUD_TOKEN_URL, params={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "code": code,
+            })
+            resp.raise_for_status()
+
+            try:
+                data = resp.json()
+            except Exception:
+                from urllib.parse import parse_qsl
+                data = dict(parse_qsl(resp.text))
+
+            token = data.get("access_token")
+            if not token:
+                return HTMLResponse(
+                    f"<html><body><p>Unexpected response: {resp.text}</p></body></html>",
+                    status_code=500,
+                )
+
+            os.environ["MIXCLOUD_ACCESS_TOKEN"] = token
+            print("[http] Mixcloud token stored — upload tool is now authenticated.", file=sys.stderr)
+            return HTMLResponse(
+                "<html><body>"
+                "<h2>Mixcloud connected</h2>"
+                "<p>Authorization successful — you can close this tab.</p>"
+                "</body></html>"
+            )
+
+        except Exception as exc:
+            return HTMLResponse(
+                f"<html><body><p>Token exchange failed: {exc}</p></body></html>",
+                status_code=500,
+            )
+
+    return [
+        Route("/oauth/authorize", authorize, methods=["GET"]),
+        Route("/oauth/callback", callback, methods=["GET"]),
+    ]
 
 
 def run() -> None:
@@ -113,27 +183,19 @@ def run() -> None:
         print("  - Set DISABLE_AUTH=true for local dev only", file=sys.stderr)
         sys.exit(1)
 
-    auth = None
-    if oauth_configured and not disable_auth:
-        auth = MixcloudOAuthProxy(
-            upstream_authorization_endpoint=MIXCLOUD_AUTH_URL,
-            upstream_token_endpoint=MIXCLOUD_TOKEN_URL,
-            upstream_client_id=client_id,
-            upstream_client_secret=client_secret,
-            token_verifier=MixcloudTokenVerifier(),
-            base_url=public_url,
-            forward_pkce=False,
-            extra_token_params={"method": "GET"},
-            require_authorization_consent=False,
-            fallback_access_token_expiry_seconds=365 * 24 * 3600,
-        )
+    # OAuth routes let the server authenticate to Mixcloud (like the stdio sidecar).
+    # These are independent of DISABLE_AUTH — DISABLE_AUTH controls MCP endpoint access,
+    # not whether the server can authenticate to Mixcloud for the upload tool.
+    oauth_routes = []
+    if oauth_configured:
+        oauth_routes = _build_oauth_routes(client_id, client_secret, public_url)
 
-    mcp.auth = auth
     mcp_starlette = mcp.http_app(transport="streamable-http")
 
     app = Starlette(
         routes=[
             upload_route,
+            *oauth_routes,
             Mount("/", app=mcp_starlette),
         ],
         lifespan=mcp_starlette.lifespan,
@@ -154,12 +216,16 @@ def run() -> None:
     if disable_auth:
         print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (no auth — dev only)", file=sys.stderr)
         print("WARNING: Auth is disabled — do not run this way in production", file=sys.stderr)
-    elif oauth_configured:
-        print(f"Endpoint: POST {public_url}/mcp  (OAuth — authenticate via {public_url}/authorize)",
-              file=sys.stderr)
-    else:
+    elif api_key:
         print(f"Endpoint: POST http://0.0.0.0:{port}/mcp  (Authorization: Bearer <MCP_API_KEY>)",
               file=sys.stderr)
+    if oauth_configured:
+        print(f"Mixcloud auth: GET {public_url}/oauth/authorize", file=sys.stderr)
+        if os.getenv("MIXCLOUD_ACCESS_TOKEN"):
+            print("[http] Mixcloud access token loaded from env — upload tool ready.", file=sys.stderr)
+        else:
+            print(f"[http] No Mixcloud token — visit {public_url}/oauth/authorize to enable uploads.",
+                  file=sys.stderr)
     print(f"Upload:   POST http://0.0.0.0:{port}/upload", file=sys.stderr)
 
     uvicorn.run(app, host="0.0.0.0", port=port)

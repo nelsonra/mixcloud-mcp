@@ -8,6 +8,9 @@ interface ToolResultData {
   status?: string
   upload_url?: string
   upload_token?: string
+  error?: string
+  message?: string
+  auth_url?: string
 }
 
 export interface UploadResult {
@@ -59,6 +62,11 @@ export function useMixcloudUploader() {
         if (!text) return
         try {
           const data = JSON.parse(text) as ToolResultData
+          if (data.error) {
+            setErrorMsg(data.message ?? data.error)
+            setMode('ready')
+            return
+          }
           if (data.upload_url) {
             setUploadUrl(data.upload_url)
             setUploadToken(data.upload_token ?? null)
@@ -194,9 +202,13 @@ export function useMixcloudUploader() {
       // fastmcp dev apps preview doesn't implement it — ignore the -32601 error.
       await app?.updateModelContext({
         content: [{ type: 'text', text: `Uploaded "${name.trim()}" to Mixcloud: ${mixcloudUrl}` }],
-      }).catch(() => {})
+      }).catch((err) => console.error('[updateModelContext]', err))
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      const detail = message === 'Failed to fetch' && uploadUrl?.startsWith('http:')
+        ? `Cannot reach upload server (${uploadUrl}). If you're connecting via Claude.ai, MCP_PUBLIC_URL must be an HTTPS URL (e.g. your ngrok address).`
+        : message
+      setErrorMsg(detail)
       setUploadState('error')
     }
   }, [
