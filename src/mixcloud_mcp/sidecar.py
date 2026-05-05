@@ -133,6 +133,8 @@ def _port_in_use(port: int) -> bool:
 def start(port: int | None = None) -> int:
     """Start the sidecar in a background daemon thread. Returns the port used."""
     port = port or int(os.getenv("UPLOAD_PORT", str(SIDECAR_PORT_DEFAULT)))
+    # Write back so _upload_url() in upload_cloudcast.py picks up the correct port.
+    os.environ["UPLOAD_PORT"] = str(port)
 
     if _port_in_use(port):
         print(f"[sidecar] Port {port} already in use — reusing existing sidecar.", file=sys.stderr)
