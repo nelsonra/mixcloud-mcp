@@ -42,6 +42,18 @@ dev = [
     "ruff>=0.15.12",
 ]
 
+[tool.bumpversion]
+current_version = "0.2.0"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+commit_message = "Bump to v{new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
 [tool.ruff]
 line-length = 100
 
